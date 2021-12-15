@@ -35,8 +35,8 @@ class PanoSeq2SeqTrainer():
 
         # load dataset path for computing ground truth distance
         self.agent.gt = {}
-        for item in load_datasets(train_env.splits, self.opts):
-            self.agent.gt[item['path_id']] = item
+        for item in load_datasets(train_env.splits, self.opts):  # item == json file per split
+            self.agent.gt[item['path_id']] = item  # for each split, key == path_id and value = everything else.
 
         success_count, rollback_success_count, rollback_count, oscillating_success_count, oscillating_count = 0, 0, 0, 0, 0
         end = time.time()

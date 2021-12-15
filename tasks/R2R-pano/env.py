@@ -11,8 +11,14 @@ import math
 import base64
 import random
 import networkx as nx
+import json
 
 from utils import load_datasets, load_nav_graphs, print_progress, is_experiment
+
+SCAN_IDS_PATH = 'tasks/R2R-pano/data/scan_ids.json'
+with open(SCAN_IDS_PATH) as f:
+    SCAN_IDS = json.load(f)
+
 
 csv.field_size_limit(sys.maxsize)
 
@@ -20,31 +26,47 @@ def load_features(feature_store):
     def _make_id(scanId, viewpointId):
         return scanId + '_' + viewpointId
 
+    skipped_items = 0
+    total_items = 0
+
     # if the tsv file for image features is provided
     if feature_store:
         tsv_fieldnames = ['scanId', 'viewpointId', 'image_w', 'image_h', 'vfov', 'features']
         features = {}
         with open(feature_store, "r") as tsv_in_file:
             print('Reading image features file %s' % feature_store)
-            reader = list(csv.DictReader(tsv_in_file, delimiter='\t', fieldnames=tsv_fieldnames))
-            total_length = len(reader)
+            reader = csv.DictReader(tsv_in_file, delimiter='\t', fieldnames=tsv_fieldnames)
+            # reader = list(csv.DictReader(tsv_in_file, delimiter='\t', fieldnames=tsv_fieldnames))
+            
+            # reader = csv.reader(tsv_in_file, delimeter='\t', fieldnames=tsv_fieldnames)
+            # total_length = len(reader)
 
             print('Loading image features ..')
             for i, item in enumerate(reader):
+                if i % 1000 == 0:
+                    print(f"{skipped_items} skipped, {total_items} total")
+
+                # Only save necesary scans
+                if item['scanId'] not in SCAN_IDS:
+                    skipped_items += 1
+                    continue
+                total_items += 1
+
                 image_h = int(item['image_h'])
                 image_w = int(item['image_w'])
                 vfov = int(item['vfov'])
                 long_id = _make_id(item['scanId'], item['viewpointId'])
                 features[long_id] = np.frombuffer(base64.b64decode(item['features']),
                                                        dtype=np.float32).reshape((36, 2048))
-                print_progress(i + 1, total_length, prefix='Progress:',
-                               suffix='Complete', bar_length=50)
+                # print_progress(i + 1, total_length, prefix='Progress:',
+                            #    suffix='Complete', bar_length=50)
     else:
         print('Image features not provided')
         features = None
         image_w = 640
         image_h = 480
         vfov = 60
+    print(f'{skipped_items} of {total_items} items have been skipped.')
     return features, (image_w, image_h, vfov)
 
 

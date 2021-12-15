@@ -23,3 +23,5 @@ tensorboard_logs
 /tasks/R2R-pano/results/*/*.json
 
 /tasks/R2R-pano/demo.py
+
+venv
